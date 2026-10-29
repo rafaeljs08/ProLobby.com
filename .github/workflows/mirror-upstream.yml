@@ -1,0 +1,56 @@
+name: Mirror upstream
+
+# Espelha as branches de ljborgess/ProLobby.com (repositório original) neste
+# repositório. Este arquivo vive na branch `mirror-sync`, a branch padrão: as
+# branches espelhadas são sobrescritas pelo original, então nada que mora nelas
+# sobreviveria. Veja o README da mirror-sync.
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-upstream
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_URL: https://github.com/ljborgess/ProLobby.com.git
+
+jobs:
+  mirror:
+    # Roda só no repositório de rafaeljs08, nunca num fork de terceiros.
+    if: github.repository_owner == 'rafaeljs08'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar o segredo
+        env:
+          TOKEN: ${{ secrets.MIRROR_PUSH_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "::error::Falta o segredo MIRROR_PUSH_TOKEN (PAT com Contents e Workflows de escrita neste repositório). O GITHUB_TOKEN não pode atualizar arquivos de .github/workflows, e o original tem."
+            exit 1
+          fi
+
+      - name: Buscar o original
+        run: |
+          git init -q mirror && cd mirror
+          git remote add upstream "$UPSTREAM_URL"
+          git fetch --no-tags upstream '+refs/heads/*:refs/remotes/upstream/*'
+          git fetch --tags upstream
+
+      - name: Publicar aqui
+        env:
+          TOKEN: ${{ secrets.MIRROR_PUSH_TOKEN }}
+        run: |
+          cd mirror
+          git remote add mirror "https://x-access-token:${TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          # Sem --prune: branch que sumiu do original continua aqui, e branch
+          # própria deste repositório nunca é apagada. A mirror-sync fica de fora.
+          git push --force mirror \
+            'refs/remotes/upstream/*:refs/heads/*' \
+            '^refs/remotes/upstream/mirror-sync'
+          git push mirror 'refs/tags/*:refs/tags/*'
