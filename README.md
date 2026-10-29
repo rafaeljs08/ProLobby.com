@@ -1,6 +1,4 @@
-# ProLobby.com — espelho
-
-Espelho automático de [`ljborgess/ProLobby.com`](https://github.com/ljborgess/ProLobby.com), o repositório original do projeto.
+# ProLobby.com 
 
 O código está nas branches [`dev`](../../tree/dev) (onde o produto é construído) e [`main`](../../tree/main). Elas são cópias do original e voltam ao estado dele a cada sincronização.
 
